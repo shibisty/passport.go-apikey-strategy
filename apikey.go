@@ -1,5 +1,5 @@
 // Package apikey authenticates API clients by key. gtr package:
-// passport-apikey.
+// passport/apikey.
 //
 //	key, hash, err := apikey.Generate("sk_live")  // show key once, store hash
 //	s := apikey.New(func(ctx context.Context, hash string) (*passport.Identity, error) {
@@ -86,9 +86,23 @@ func Hash(key string) string {
 	return hex.EncodeToString(sum[:])
 }
 
+// wellFormed checks the shape "<prefix>_<43 base64url characters>". The
+// random part may contain "_" itself, so the prefix ends 44 characters from
+// the end, not at the last "_".
 func wellFormed(key string) bool {
-	i := strings.LastIndexByte(key, '_')
-	return i > 0 && len(key)-i-1 == 43 && len(key) < 100
+	if len(key) < 46 || len(key) >= 100 {
+		return false
+	}
+	i := len(key) - 44
+	if key[i] != '_' || !prefixRe.MatchString(key[:i]) {
+		return false
+	}
+	for _, c := range key[i+1:] {
+		if !(c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-' || c == '_') {
+			return false
+		}
+	}
+	return true
 }
 
 // Middleware authenticates a request by its key in header (default

@@ -1,11 +1,11 @@
-# passport-apikey
+# @passport/apikey
 
 API keys for [`passport`](https://github.com/shibisty/passport.go). Go package: `apikey`.
 
 ## Installation
 
 ```bash
-gtr add github:shibisty/passport.go github:shibisty/passport.go-apikey-strategy
+gtr add passport @passport/apikey
 ```
 
 ## Usage

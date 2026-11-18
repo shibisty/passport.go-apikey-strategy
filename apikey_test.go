@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"passport"
-	apikey "passport-apikey"
+	apikey "passport/apikey"
 	"passport/httpauth"
 )
 
@@ -74,6 +74,40 @@ func TestKeys(t *testing.T) {
 		h.ServeHTTP(rec, req)
 		if rec.Code != c.code {
 			t.Errorf("%s: %d", name, rec.Code)
+		}
+	}
+}
+
+// Every generated key authenticates, also when its random part contains
+// "_" (base64url): it once ended the prefix at the last "_".
+func TestEveryGeneratedKeyWorks(t *testing.T) {
+	hashes := map[string]bool{}
+	s := apikey.New(func(_ context.Context, h string) (*passport.Identity, error) {
+		if hashes[h] {
+			return &passport.Identity{ProviderUserID: "x"}, nil
+		}
+		return nil, passport.ErrInvalidCredentials
+	})
+	underscores := 0
+	for i := 0; i < 1000; i++ {
+		key, hash, err := apikey.Generate("sk_live")
+		if err != nil {
+			t.Fatal(err)
+		}
+		hashes[hash] = true
+		if strings.Contains(key[len("sk_live_"):], "_") {
+			underscores++
+		}
+		if _, err := s.Authenticate(context.Background(), map[string]string{"api_key": key}); err != nil {
+			t.Fatalf("%s: %v", key, err)
+		}
+	}
+	if underscores == 0 {
+		t.Fatal("no key with _ in its random part: the case was not tested")
+	}
+	for _, bad := range []string{"sk_live" + strings.Repeat("a", 44), "Sk_" + strings.Repeat("a", 43), "_" + strings.Repeat("a", 43), "sk_live_" + strings.Repeat("a", 42) + "!"} {
+		if _, err := s.Authenticate(context.Background(), map[string]string{"api_key": bad}); !errors.Is(err, passport.ErrInvalidCredentials) {
+			t.Errorf("%q: %v", bad, err)
 		}
 	}
 }
