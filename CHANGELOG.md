@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.1 — 2026-11-19
+
 ### Fixed
 - Keys whose random part contains "_" (about half of them: base64url) were refused as
   malformed: the prefix was taken up to the last "_". It now ends 44 characters from the end.
